@@ -41,7 +41,6 @@ class Player:
         self.name = name
         self.chips = chips
         self.bet = 0
-        self.cards_value = 0
         self.hand = []
 
     def win_bet(self, amount):
@@ -55,10 +54,20 @@ class Player:
         self.chips -= amount # take bet out of chips
         self.bet = amount # store bet
 
-    def card_value(self, value):
+    def hand_value(self):
+        total = 0
+        aces = 0
 
-        self.cards_value += value
-        return self.cards_value
+        for card in self.hand:
+            total += card.value
+            if card.rank == 'Ace':
+                aces += 1
+
+        while total > 21 and aces:
+            total -= 10
+            aces -= 1
+
+        return total
 
     def add_card(self, card):
         self.hand.append(card)
@@ -99,7 +108,7 @@ if __name__ == "__main__":
     player = Player("House", 100000)
     players.append(player)
 
-    while game_on == True:
+    while game_on:
 
         new_deck = Deck()
         new_deck.shuffle()
@@ -108,14 +117,11 @@ if __name__ == "__main__":
         for player in players:
             player.bet = 0
             player.hand = []
-            player.cards_value = 0
+
 
 
         # Prompt each player to place their bet
         for player in players[:-1]: # exclude house from betting
-            player.bet = 0
-            player.hand = []
-            player.cards_value = 0
 
             while True: #
                 try:
@@ -135,12 +141,13 @@ if __name__ == "__main__":
             for current_player in players: # iterate through all players and deal two cards
                 new_card = new_deck.deal()
                 current_player.add_card(new_card)
-                card_value = new_card.value
-                cards_value = current_player.card_value(card_value)
+
+
+                cards_value = current_player.hand_value()
                 if current_player.name == "House":
                     print(f"{current_player.name}: {current_player.show_hand(x, hide_first_card=True)}")
                 else:
-                    continue
+                    print(f"{current_player.name}: {current_player.show_hand(x)}")
 
         for current_player in players[:-1]: # iterate through all players
 
@@ -149,32 +156,38 @@ if __name__ == "__main__":
                     player_move = (input(f"{current_player.name}, Would you like to Stand(S) or Take a Card (C): "))
                     player_move = player_move.upper()
 
-                    if player_move != "S":
+                    if player_move == "C":
                         new_card = new_deck.deal()
                         current_player.add_card(new_card)
-                        card_value = new_card.value
-                        cards_value = current_player.card_value(card_value)
 
+
+                        cards_value = current_player.hand_value()
 
                         if cards_value > 21:
                             print(f"{current_player.name}: {current_player.show_hand(x, hide_first_card=False)}")
                             print(f"{current_player.name} you are BUST. Lost {current_player.bet}")
                             break
                         continue
-                    else:
+                    elif player_move == "S":
+                        print(f"{current_player.name} stands with a hand value of {current_player.hand_value()}\n")
                         break
+                    else:
+                        print("Invalid input - Please enter S to Stand or C to take a Card.\n")
+                        continue
+
         # Reveal House's hand and play out House's cards
         current_player = players[-1] # House is the last player in the list
         print(f"{current_player.name}: {current_player.show_hand(x, hide_first_card=False)}\n")
-        cards_value = current_player.card_value(0)
+        cards_value = current_player.hand_value()
 
         while True:
             # House must hit until cards_value is at least 17
             if cards_value < 17:
                     new_card = new_deck.deal()
                     current_player.add_card(new_card)
-                    card_value = new_card.value
-                    cards_value = current_player.card_value(card_value)
+
+
+                    cards_value = current_player.hand_value()
                     print(f"{current_player.name}: {current_player.show_hand(x, hide_first_card=False)}\n")
 
                     if cards_value > 21:
@@ -185,18 +198,18 @@ if __name__ == "__main__":
                 break
 
         house_count = 0
-        house_count = current_player.cards_value
 
+        house_count = current_player.hand_value()
         # Determine winners and losers
         for current_player in players: # iterate through all players
             if current_player.name != "House":
-                if house_count > 21 and current_player.cards_value < 22:
+                if house_count > 21 and current_player.hand_value() < 22:
                     current_player.win_bet(current_player.bet)
                     print(f"{current_player.name} paid out: {current_player.bet} Chip count: {current_player.chips}\n")
-                elif house_count == current_player.cards_value:
+                elif house_count == current_player.hand_value() and house_count < 22:
                     current_player.standoff_bet(current_player.bet)
                     print(f"{current_player.name} has a standoff. Bet returned. Chip count: {current_player.chips}\n")
-                elif house_count < 22 and current_player.cards_value > house_count and current_player.cards_value < 22:
+                elif house_count < 22 and current_player.hand_value() > house_count and current_player.hand_value() < 22:
                     current_player.win_bet(current_player.bet)
                     print(f"{current_player.name} paid out: {current_player.bet} Chip count: {current_player.chips}\n")
                 else:
